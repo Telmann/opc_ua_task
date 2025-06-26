@@ -24,3 +24,7 @@ uvicorn app.main:app --reload
 
 ### Пример эндпоинтов:
 ![image](https://github.com/user-attachments/assets/891f517c-42ed-4776-8075-dfff6ba000a1)
+
+### Пример таблицы в БД:
+![image](https://github.com/user-attachments/assets/2cdd7e1d-0351-483e-83e4-076047ab5b6f)
+
