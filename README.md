@@ -20,3 +20,4 @@ python server_sim.py num
 ```
 uvicorn app.main:app --reload
 ```
+## Теперь можно обращаться к эндпоинтам по локальному адресу: "http://127.0.0.1:8000/docs#/"
