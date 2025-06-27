@@ -15,6 +15,7 @@ async def create_device_table(device_name: str, tags: list) -> None:
         Column("id", Integer, primary_key=True, autoincrement=True),
         Column("tag_name", String, nullable=False),
         Column("tag_type", String, nullable=False),
+        Column("tag_value", String, nullable=False), # !!!
     )
 
     async with engine.begin() as conn:
@@ -22,9 +23,10 @@ async def create_device_table(device_name: str, tags: list) -> None:
         # print(len(tags), tags)
         insert_data = []
         for tag in tags:
+            tag_value = str(tag.get_value())
             bname = tag.get_browse_name().Name
             tag_type, name = bname.split("_", 1)
-            insert_data.append({"tag_name": name, "tag_type": tag_type})
+            insert_data.append({"tag_name": name, "tag_type": tag_type, "tag_value": tag_value}) # !!!
         await conn.execute(tag_table.insert(), insert_data)
 
 
