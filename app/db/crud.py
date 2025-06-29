@@ -61,8 +61,8 @@ async def delete_tag(table_name: str, tag_name: str) -> None:
         await conn.execute(stmt)
 
 
-async def add_tag(table_name: str, tag_name: str, tag_type: str) -> None:
+async def add_tag(table_name: str, tag_name: str, tag_type: str, tag_value: str) -> None:
     tag_table = Table(table_name, metadata, autoload_with=sync_engine)
     async with engine.begin() as conn:
-        stmt = tag_table.insert().values(tag_name=tag_name, tag_type=tag_type)
+        stmt = tag_table.insert().values(tag_name=tag_name, tag_type=tag_type, tag_value=tag_value)
         await conn.execute(stmt)

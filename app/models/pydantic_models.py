@@ -20,6 +20,7 @@ class AddTagRequest(BaseModel):
     table_name: str
     tag_name: str
     tag_type: str
+    tag_value: str
 
     @field_validator("tag_type")
     @classmethod

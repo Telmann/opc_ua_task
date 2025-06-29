@@ -83,7 +83,7 @@ async def remove_column(req: DeleteTagRequest) -> dict[str, str]:
 async def add_column_endpoint(req: AddTagRequest) -> dict[str, str]:
     """Функция, которая добавляет тэг в таблице в БД"""
     try:
-        await add_tag(req.table_name, req.tag_name, req.tag_type)
+        await add_tag(req.table_name, req.tag_name, req.tag_type, req.tag_value)
         return {
             "status": "success",
             "message": f'Tag "{req.tag_name}" added to table "{req.table_name}"',
