@@ -32,6 +32,7 @@ class AddTagRequest(BaseModel):
 
 class RenameTagRequest(BaseModel):
     table_name: str
+    tag_type: str
     old_name: str
     new_name: str
 
@@ -39,3 +40,4 @@ class RenameTagRequest(BaseModel):
 class DeleteTagRequest(BaseModel):
     table_name: str
     tag_name: str
+    tag_type: str
