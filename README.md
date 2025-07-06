@@ -32,9 +32,11 @@ uvicorn app.main:app --reload
 
 
 ### Пример таблицы в БД:
-![image](https://github.com/user-attachments/assets/aa8a85ac-ddaf-419f-989f-3ab7bcccd5ae)
+![image](https://github.com/user-attachments/assets/c461111b-d49d-49d3-a46d-d9140f80b4a1)
+
 
 Пример объектов на С сервере:
+
 ![image](https://github.com/user-attachments/assets/0abb5eb2-6f8c-49d8-99d9-148749b56910)
 
 ![image](https://github.com/user-attachments/assets/0d94ec80-deda-4e2c-bd23-9dc637364e2a)
