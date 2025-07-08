@@ -10,7 +10,10 @@ import uuid
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from opcua import Client, Server, ua
 
-from app.db.update_task import poll_opcua_and_store
+
+from app.db.update_task import poll_opcua_and_store  # с тредами
+
+
 from app.models.pydantic_models import (AddTagRequest, DeleteTableRequest,
                                         DeleteTagRequest, RenameTableRequest,
                                         RenameTagRequest)
@@ -34,7 +37,7 @@ def start_c_server():
 
 @app.post("/tables/create")
 async def device_table(
-    url: str, table_name: str
+        url: str, table_name: str
 ) -> dict[str, str]:  # 1) принимать url сервера opcua на питоне
     """Функция, создающая таблицу с тэгами в БД (имя записывается в формате 'device_xyz', где xyz это имя введенное
     пользователем"""

@@ -8,6 +8,7 @@ from sqlalchemy import (Column, DateTime, Integer, String, Table, delete, text,
                         update)
 
 from app.db.db import Base, engine, metadata, sync_engine
+from app.db.update_task import collect_data
 
 
 async def create_device_table(
@@ -35,8 +36,9 @@ async def create_device_table(
         """
             )
         )
-        insert_data = []
-        for tag in tags:
+        # insert_data = []
+        insert_data = await collect_data(tags)
+        '''for tag in tags:
             tag_value = str(tag.get_value())
             bname = tag.get_browse_name().Name
             tag_type, name = bname.split("_", 1)
@@ -47,7 +49,7 @@ async def create_device_table(
                     "tag_value": tag_value,
                     "timestamp": datetime.utcnow(),
                 }
-            )  #
+            )  # '''
         await conn.execute(tag_table.insert(), insert_data)
 
 
