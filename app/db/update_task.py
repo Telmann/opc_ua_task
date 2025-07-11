@@ -4,23 +4,24 @@ from datetime import datetime
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 
-from opcua import Client
+from asyncua import Client
 from sqlalchemy import MetaData, Table
 
 from app.db.db import engine, sync_engine
 
-executor = ThreadPoolExecutor(max_workers=500)  # Можно настроить под нагрузку
+# executor = ThreadPoolExecutor(max_workers=500)  # Можно настроить под нагрузку
 
 count = 0.0
 
 
-def process_tag(tag):
+async def process_tag(tag):
     try:
         # start_query = time.time()
+        get_val = await tag.read_value()
+        value = str(get_val)
 
-        value = str(tag.get_value())
-        bname = tag.get_browse_name().Name
-        tag_type, name = bname.split("_", 1)
+        bname = await tag.read_browse_name()
+        tag_type, name = bname.Name.split("_", 1)
 
         # print(f"\n Single TIME FOR GETTING STUFF FROM OPC UA PYTHON SERVER {time.time() - start_query} \n")
 
@@ -35,13 +36,14 @@ def process_tag(tag):
 
 
 async def collect_data(tags, batch_size=500):  # batch
-    loop = asyncio.get_event_loop()
+    # loop = asyncio.get_event_loop()
     res_arr = []
 
     for i in range(0, len(tags), batch_size):
         batch = tags[i: i + batch_size]
 
-        tasks = [loop.run_in_executor(executor, partial(process_tag, tag)) for tag in batch]
+        # tasks = [loop.run_in_executor(executor, partial(process_tag, tag)) for tag in batch]
+        tasks = [process_tag(tag) for tag in batch]
         batch_res = await asyncio.gather(*tasks)
         res_arr.extend(r for r in batch_res if r is not None)
 
@@ -51,12 +53,12 @@ async def collect_data(tags, batch_size=500):  # batch
 async def poll_opcua_and_store(device_name: str, url: str):
     opc_connect_start = time.time()
     client = Client(url)
-    client.connect()
+    await client.connect()
 
     print(f"\n connect to server (poll) time: {time.time() - opc_connect_start:.2f} sec \n")
 
     root = client.get_root_node()
-    myobj = root.get_child(["0:Objects", "2:MyObject"])
+    myobj = await root.get_child(["0:Objects", "2:MyObject"])
 
     metadata = MetaData()
     tag_table = Table(device_name, metadata, autoload_with=sync_engine)
@@ -64,7 +66,7 @@ async def poll_opcua_and_store(device_name: str, url: str):
     try:
         while True:
             db_insert_start = time.time()
-            tags = myobj.get_children()
+            tags = await myobj.get_children()
 
             data = await collect_data(tags)
 
@@ -76,4 +78,4 @@ async def poll_opcua_and_store(device_name: str, url: str):
             print(f"\n total time including db insert: {time.time() - db_insert_start:.2f} sec \n")
             # await asyncio.sleep(0.01)
     finally:
-        client.disconnect()
+        await client.disconnect()

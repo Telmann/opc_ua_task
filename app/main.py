@@ -8,7 +8,8 @@ import time
 import uuid
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from opcua import Client, Server, ua
+# from opcua import Client, Server, ua
+from asyncua import Client
 
 
 from app.db.update_task import poll_opcua_and_store  # с тредами
@@ -31,7 +32,7 @@ running_asyncio_tasks = {}
 @app.on_event("startup")
 def start_c_server():
     subprocess.Popen(
-        ["PATH\\opc_ua_task\\step1\\c_server.exe"]  # путь к c_server
+        ["C:\\users\\thalt\\opc_ua_task\\step1\\c_server.exe"]  # путь к c_server
     )  # запуск C server
 
 
@@ -45,13 +46,13 @@ async def device_table(
         start_time = time.time()
 
         client = Client(url)  # 2) передавать принятый url для подключения
-        client.connect()
+        await client.connect()
 
         root = client.get_root_node()
 
-        myobj = root.get_child(["0:Objects", "2:MyObject"])
+        myobj = await root.get_child(["0:Objects", "2:MyObject"])
 
-        tags = myobj.get_children()
+        tags = await myobj.get_children()
         print(tags[:25])
 
         connect_time = time.time()
@@ -82,7 +83,7 @@ async def device_table(
 
 @app.put("/tables/rename")
 async def rename_table(req: RenameTableRequest, url: str) -> dict[str, str]:
-    """Функция, которая переименовывает таблицу с тэгами в БД"""
+    """Функция, которая переименовывает таблицу с тэгами в БД (в поле new_name начните имя таблицы с 'device_' """
     try:
         await change_table_name(req.old_name, req.new_name)  # меняем имя таблицы в БД
         if req.old_name in running_asyncio_tasks:  # убиваем старый бэкграунд таск
