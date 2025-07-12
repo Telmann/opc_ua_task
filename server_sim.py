@@ -1,5 +1,5 @@
 """Этот модуль отвечает за симулятор сервера на n-ное кол-во тэгов. (Пример: python server_sim.py 10
-opc.tcp://localhost:4840/freeopcua/server/) """
+opc.tcp://localhost:4840/freeopcua/server/)"""
 
 import sys
 import time
@@ -67,7 +67,7 @@ def delete_tag_from_server(tag_name: str) -> bool:
 def rename_tag_on_server(old_name: str, new_name: str) -> bool:
     """Переименование тега на OPC UA сервера"""
     if old_name in mytags:
-        node, _ = mytags[old_name]  # переименовать в словаре
+        node, _ = mytags[old_name]
         try:
             # server.delete_nodes([node])
             new_browse_name = ua.QualifiedName(new_name, node.nodeid.NamespaceIndex)
@@ -80,6 +80,7 @@ def rename_tag_on_server(old_name: str, new_name: str) -> bool:
                 ua.AttributeIds.DisplayName, ua.DataValue(new_display_name)
             )
             # node.get_browse_name() =
+            mytags[new_name] = mytags.pop(old_name)
             return True
         except Exception as e:
             print(f"Error renaming node {old_name}: {e}")
@@ -162,7 +163,7 @@ def start_server(
                     value = choice([True, False])
                     my_var.set_value(value)
                 # print(my_var.get_value())
-            time.sleep(0.01)
+            time.sleep(1)
     finally:
         server.stop()
         print("server stop")

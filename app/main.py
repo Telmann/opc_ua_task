@@ -8,6 +8,7 @@ import time
 import uuid
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
+
 # from opcua import Client, Server, ua
 from asyncua import Client
 
@@ -15,13 +16,23 @@ from asyncua import Client
 from app.db.update_task import poll_opcua_and_store  # с тредами
 
 
-from app.models.pydantic_models import (AddTagRequest, DeleteTableRequest,
-                                        DeleteTagRequest, RenameTableRequest,
-                                        RenameTagRequest)
+from app.models.pydantic_models import (
+    AddTagRequest,
+    DeleteTableRequest,
+    DeleteTagRequest,
+    RenameTableRequest,
+    RenameTagRequest,
+)
 from server_sim import delete_tag_from_server
 
-from .db.crud import (add_tag, change_table_name, create_device_table,
-                      delete_table, delete_tag, rename_tag)
+from .db.crud import (
+    add_tag,
+    change_table_name,
+    create_device_table,
+    delete_table,
+    delete_tag,
+    rename_tag,
+)
 
 app = FastAPI()
 STORAGE_FILE = "storage.txt"
@@ -32,13 +43,13 @@ running_asyncio_tasks = {}
 @app.on_event("startup")
 def start_c_server():
     subprocess.Popen(
-        ["C:\\users\\thalt\\opc_ua_task\\step1\\c_server.exe"]  # путь к c_server
+        ["PATH\\opc_ua_task\\step1\\c_server.exe"]  # путь к c_server
     )  # запуск C server
 
 
 @app.post("/tables/create")
 async def device_table(
-        url: str, table_name: str
+    url: str, table_name: str
 ) -> dict[str, str]:  # 1) принимать url сервера opcua на питоне
     """Функция, создающая таблицу с тэгами в БД (имя записывается в формате 'device_xyz', где xyz это имя введенное
     пользователем"""
@@ -83,7 +94,7 @@ async def device_table(
 
 @app.put("/tables/rename")
 async def rename_table(req: RenameTableRequest, url: str) -> dict[str, str]:
-    """Функция, которая переименовывает таблицу с тэгами в БД (в поле new_name начните имя таблицы с 'device_' """
+    """Функция, которая переименовывает таблицу с тэгами в БД (в поле new_name начните имя таблицы с 'device_'"""
     try:
         await change_table_name(req.old_name, req.new_name)  # меняем имя таблицы в БД
         if req.old_name in running_asyncio_tasks:  # убиваем старый бэкграунд таск
@@ -113,12 +124,10 @@ async def rename_column(req: RenameTagRequest) -> dict[str, str]:
     try:
         full_old_name = req.tag_type + "_" + req.old_name
         full_new_name = req.tag_type + "_" + req.new_name
-
         with open(RENAME_STORAGE_FILE, "a") as f:
             f.write(f"{full_old_name} {full_new_name}\n")
 
-        time.sleep(1.5)
-
+        time.sleep(4.0)
         await rename_tag(
             req.table_name, req.old_name, req.new_name
         )  # crud для переименования в БД
@@ -136,7 +145,7 @@ async def remove_column(req: DeleteTagRequest) -> dict[str, str]:
 
         with open(STORAGE_FILE, "a") as f:
             f.write(f"{full_name}\n")
-        time.sleep(1.5)
+        time.sleep(3.0)
 
         await delete_tag(req.table_name, req.tag_name)
 

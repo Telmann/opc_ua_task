@@ -55,7 +55,9 @@ async def poll_opcua_and_store(device_name: str, url: str):
     client = Client(url)
     await client.connect()
 
-    print(f"\n connect to server (poll) time: {time.time() - opc_connect_start:.2f} sec \n")
+    print(
+        f"\n connect to server (poll) time: {time.time() - opc_connect_start:.2f} sec \n"
+    )
 
     root = client.get_root_node()
     myobj = await root.get_child(["0:Objects", "2:MyObject"])
@@ -70,12 +72,16 @@ async def poll_opcua_and_store(device_name: str, url: str):
 
             data = await collect_data(tags)
 
-            print(f"\n time for data processing: {time.time() - db_insert_start:.2f} sec \n")
+            print(
+                f"\n time for data processing: {time.time() - db_insert_start:.2f} sec \n"
+            )
 
             async with engine.begin() as conn:
                 await conn.execute(tag_table.insert(), data)
 
-            print(f"\n total time including db insert: {time.time() - db_insert_start:.2f} sec \n")
-            # await asyncio.sleep(0.01)
+            print(
+                f"\n total time including db insert: {time.time() - db_insert_start:.2f} sec \n"
+            )
+            await asyncio.sleep(1)
     finally:
         await client.disconnect()
