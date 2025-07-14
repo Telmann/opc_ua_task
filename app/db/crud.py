@@ -4,16 +4,14 @@
 
 from datetime import datetime
 
-from sqlalchemy import (Column, DateTime, Integer, String, Table, delete, text,
-                        update)
+from sqlalchemy import (Column, DateTime, Integer, String, Table, delete,
+                        select, text, update)
 
 from app.db.db import Base, engine, metadata, sync_engine
 from app.db.update_task import collect_data
 
 
-async def create_device_table(
-    device_name: str, tags: list
-) -> None:
+async def create_device_table(device_name: str, tags: list) -> None:
     table_name = f"{device_name}"
     tag_table = Table(
         table_name,
@@ -22,9 +20,7 @@ async def create_device_table(
         Column("tag_name", String, nullable=False),
         Column("tag_type", String, nullable=False),
         Column("tag_value", String, nullable=False),  #
-        Column(
-            "timestamp", DateTime, primary_key=True, default=datetime.utcnow
-        ),
+        Column("timestamp", DateTime, primary_key=True, default=datetime.utcnow),
     )
 
     async with engine.begin() as conn:
@@ -93,3 +89,11 @@ async def add_tag(
             tag_name=tag_name, tag_type=tag_type, tag_value=tag_value
         )
         await conn.execute(stmt)
+
+
+async def check_tag(table_name: str, tag_name: str):
+    tag_table = Table(table_name, metadata, autoload_with=sync_engine)
+    async with engine.begin() as conn:
+        stmt = select(tag_table).where(tag_table.c.tag_name == tag_name)
+        res = await conn.execute(stmt)
+        return res.fetchone() is not None  # True если результат не пустой

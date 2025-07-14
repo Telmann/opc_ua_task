@@ -1,8 +1,8 @@
 import asyncio
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import partial
-from concurrent.futures import ThreadPoolExecutor
 
 from asyncua import Client
 from sqlalchemy import MetaData, Table
@@ -40,7 +40,7 @@ async def collect_data(tags, batch_size=500):  # batch
     res_arr = []
 
     for i in range(0, len(tags), batch_size):
-        batch = tags[i: i + batch_size]
+        batch = tags[i : i + batch_size]
 
         # tasks = [loop.run_in_executor(executor, partial(process_tag, tag)) for tag in batch]
         tasks = [process_tag(tag) for tag in batch]
@@ -50,7 +50,7 @@ async def collect_data(tags, batch_size=500):  # batch
     return res_arr
 
 
-async def poll_opcua_and_store(device_name: str, url: str):
+async def poll_opcua_and_store(device_name: str, url: str, number_tags: int = None):
     opc_connect_start = time.time()
     client = Client(url)
     await client.connect()
@@ -69,6 +69,8 @@ async def poll_opcua_and_store(device_name: str, url: str):
         while True:
             db_insert_start = time.time()
             tags = await myobj.get_children()
+            if number_tags:
+                tags = tags[:number_tags]
 
             data = await collect_data(tags)
 

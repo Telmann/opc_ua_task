@@ -7,32 +7,19 @@ import subprocess
 import time
 import uuid
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
-
 # from opcua import Client, Server, ua
 from asyncua import Client
-
+from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException
 
 from app.db.update_task import poll_opcua_and_store  # с тредами
-
-
-from app.models.pydantic_models import (
-    AddTagRequest,
-    DeleteTableRequest,
-    DeleteTagRequest,
-    RenameTableRequest,
-    RenameTagRequest,
-)
+from app.models.pydantic_models import (AddTagRequest, DeleteTableRequest,
+                                        DeleteTagRequest, RenameTableRequest,
+                                        RenameTagRequest)
 from server_sim import delete_tag_from_server
 
-from .db.crud import (
-    add_tag,
-    change_table_name,
-    create_device_table,
-    delete_table,
-    delete_tag,
-    rename_tag,
-)
+from .db.crud import (add_tag, change_table_name, check_tag,
+                      create_device_table, delete_table, delete_tag,
+                      rename_tag)
 
 app = FastAPI()
 STORAGE_FILE = "storage.txt"
@@ -43,16 +30,20 @@ running_asyncio_tasks = {}
 @app.on_event("startup")
 def start_c_server():
     subprocess.Popen(
-        ["PATH\\opc_ua_task\\step1\\c_server.exe"]  # путь к c_server
+        ["PATH\\\opc_ua_task\\step1\\c_server.exe"]  # путь к c_server
     )  # запуск C server
 
 
 @app.post("/tables/create")
 async def device_table(
-    url: str, table_name: str
+    url: str,
+    table_name: str,
+    number_tags: int = None,  # number_tags для определения кол-ва принимаемых тэгов
 ) -> dict[str, str]:  # 1) принимать url сервера opcua на питоне
     """Функция, создающая таблицу с тэгами в БД (имя записывается в формате 'device_xyz', где xyz это имя введенное
-    пользователем"""
+    пользователем). Поле number_tags позволяет задать кол-во принимаемых тэгов c OPC UA сервера на python!
+    Если не заполнить параметр number_tags, то будут приниматься и передаваться все тэги с OPC UA сервера на python.
+    """
     try:
         start_time = time.time()
 
@@ -64,7 +55,8 @@ async def device_table(
         myobj = await root.get_child(["0:Objects", "2:MyObject"])
 
         tags = await myobj.get_children()
-        print(tags[:25])
+        if number_tags:
+            tags = tags[:number_tags]
 
         connect_time = time.time()
         print(
@@ -83,7 +75,7 @@ async def device_table(
 
         # background_tasks.add_task(poll_opcua_and_store, device_name)
         task = asyncio.create_task(
-            poll_opcua_and_store(device_name, url)
+            poll_opcua_and_store(device_name, url, number_tags)
         )  # 3) так же сюда передавать url для подключения у таска
         running_asyncio_tasks[device_name] = task
         # запускается асинхронный полинг, который обновляет значения тэгов.
@@ -92,15 +84,19 @@ async def device_table(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/tables/rename")
-async def rename_table(req: RenameTableRequest, url: str) -> dict[str, str]:
-    """Функция, которая переименовывает таблицу с тэгами в БД (в поле new_name начните имя таблицы с 'device_'"""
+@app.put("/tables/rename")  # !
+async def rename_table(
+    req: RenameTableRequest, url: str, number_tags: int = None
+) -> dict[str, str]:
+    """Функция, которая переименовывает таблицу с тэгами в БД (в поле new_name начните имя таблицы с 'device_').
+    Параметр number_tags не нужно задавать, если таблица изначально была создана без указания данного параметра
+    (хотя если указать, то обновляться продолжит только указанное кол-во тэгов)"""
     try:
         await change_table_name(req.old_name, req.new_name)  # меняем имя таблицы в БД
         if req.old_name in running_asyncio_tasks:  # убиваем старый бэкграунд таск
             running_asyncio_tasks[req.old_name].cancel()
         task = asyncio.create_task(
-            poll_opcua_and_store(req.new_name, url)
+            poll_opcua_and_store(req.new_name, url, number_tags)
         )  # создаем новый бэкграунд таск
         running_asyncio_tasks[req.new_name] = task
         return {"status": "success", "message": "Table renamed"}
@@ -122,6 +118,12 @@ async def remove_table(req: DeleteTableRequest) -> dict[str, str]:
 async def rename_column(req: RenameTagRequest) -> dict[str, str]:
     """Функция, которая переименовывает тэг в таблице в БД"""
     try:
+        check_flag = await check_tag(
+            req.table_name, req.old_name
+        )  # crud-функция check_tag позволяет проверить есть ли тег с таким именем в БД
+        if not check_flag:  # False возвращается если тегов с таким именем нет в БД
+            return {"status": "NOT success!", "message": "There is no such tag in DB!"}
+
         full_old_name = req.tag_type + "_" + req.old_name
         full_new_name = req.tag_type + "_" + req.new_name
         with open(RENAME_STORAGE_FILE, "a") as f:
@@ -140,7 +142,10 @@ async def rename_column(req: RenameTagRequest) -> dict[str, str]:
 async def remove_column(req: DeleteTagRequest) -> dict[str, str]:
     """Функция, которая удаляет тэг в таблице в БД"""
     try:  # Boolean_tag0
-        # await delete_tag(req.table_name, req.tag_name)
+        check_flag = await check_tag(req.table_name, req.tag_name)
+        if not check_flag:
+            return {"status": "NOT success!", "message": "There is no such tag in DB!"}
+
         full_name = req.tag_type + "_" + req.tag_name
 
         with open(STORAGE_FILE, "a") as f:
