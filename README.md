@@ -34,7 +34,8 @@ uvicorn app.main:app --reload
 ### Пример эндпоинтов:
 Необходимо отметить, что выполнение операции добавления тэга на данный момент просто добавляет тэг (только его имя, тип и значение) в БД и на C сервер(без timestamp и обновлений значения).
 ![image](https://github.com/user-attachments/assets/891f517c-42ed-4776-8075-dfff6ba000a1)
-![image](https://github.com/user-attachments/assets/40b91ee8-e34b-4ca8-b4ea-5e0e5f02d121)
+<img width="1671" height="767" alt="image" src="https://github.com/user-attachments/assets/356e2cc1-4ecd-4710-91b8-581717798242" />
+
 
 
 ### Пример таблицы в БД:
